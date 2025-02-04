@@ -204,11 +204,22 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
       <Grid container spacing={2} sx={{ width: "calc(100% + 369px)" }}>
         {/* Seletor de Visualização */}
         <Grid item xs={12} md={2}>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Visualização</InputLabel>
+          <FormControl variant="standard" fullWidth sx={{ mb: 4 }}>
+            <InputLabel
+              htmlFor="visualization-select"
+              sx={{
+                position: "relative",
+                transform: "none",
+                marginBottom: "8px",
+              }}
+            >
+              Visualização
+            </InputLabel>
             <Select
+              id="visualization-select"
               value={selectedView}
               onChange={handleViewChange}
+              variant="outlined"
               sx={{
                 "& .MuiSelect-select": {
                   display: "flex",
@@ -217,27 +228,33 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
                 },
               }}
             >
-              <MenuItem value="general">
-                <SecurityIcon fontSize="small" /> Visão Geral
-              </MenuItem>
-              <MenuItem value="network">
-                <RouterIcon fontSize="small" /> Por Rede
-              </MenuItem>
-              <MenuItem value="assets">
-                <StorageIcon fontSize="small" /> Por Ativos
-              </MenuItem>
-              <MenuItem value="criticality">
-                <WarningIcon fontSize="small" /> Por Criticidade
-              </MenuItem>
+              <MenuItem value="general">Visão Geral</MenuItem>
+              <MenuItem value="network">Por Rede</MenuItem>
+              <MenuItem value="assets">Por Ativos</MenuItem>
+              <MenuItem value="criticality">Por Criticidade</MenuItem>
             </Select>
           </FormControl>
         </Grid>
 
         {/* Filtro de Período */}
         <Grid item xs={12} md={2}>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Período</InputLabel>
-            <Select value={selectedTimeRange} onChange={handleTimeRangeChange}>
+          <FormControl variant="standard" fullWidth sx={{ mb: 2 }}>
+            <InputLabel
+              htmlFor="period-select"
+              sx={{
+                position: "relative",
+                transform: "none",
+                marginBottom: "8px",
+              }}
+            >
+              Período
+            </InputLabel>
+            <Select
+              id="period-select"
+              value={selectedTimeRange}
+              onChange={handleTimeRangeChange}
+              variant="outlined"
+            >
               <MenuItem value="1h">Última hora</MenuItem>
               <MenuItem value="24h">Últimas 24 horas</MenuItem>
               <MenuItem value="7d">Últimos 7 dias</MenuItem>
