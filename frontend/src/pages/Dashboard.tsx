@@ -18,14 +18,30 @@ export default function Dashboard() {
         backgroundColor: alpha(color, 0.1),
         border: `1px solid ${alpha(color, 0.2)}`,
         borderLeft: `4px solid ${color}`,
+        transition: "all 0.3s ease",
+        cursor: "pointer",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: `0 4px 20px ${alpha(color, 0.3)}`,
+          backgroundColor: alpha(color, 0.15),
+          "& .icon": {
+            transform: "scale(1.1)",
+          },
+        },
+        "&:active": {
+          transform: "translateY(-2px)",
+          boxShadow: `0 2px 10px ${alpha(color, 0.2)}`,
+        },
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <Icon
+          className="icon"
           sx={{
             fontSize: 40,
             color: color,
             filter: `drop-shadow(0 0 6px ${alpha(color, 0.6)})`,
+            transition: "transform 0.3s ease",
           }}
         />
         <Box sx={{ ml: 2 }}>
@@ -35,6 +51,7 @@ export default function Dashboard() {
               color: isDark
                 ? alpha(theme.palette.common.white, 0.7)
                 : "rgb(0 0 0 / 70%)",
+              transition: "color 0.3s ease",
             }}
           >
             {title}
@@ -45,6 +62,7 @@ export default function Dashboard() {
               color: color,
               textShadow: isDark ? `0 0 8px ${alpha(color, 0.4)}` : "none",
               fontWeight: 500,
+              transition: "all 0.3s ease",
             }}
           >
             {value}
