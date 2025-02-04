@@ -6,6 +6,7 @@ import {
   ListItemText,
   Toolbar,
   useTheme,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -20,7 +21,11 @@ const menuItems = [
   { text: "Logs", icon: <ListAltIcon />, path: "/logs" },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isExpanded: boolean;
+}
+
+export default function Sidebar({ isExpanded }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -30,6 +35,9 @@ export default function Sidebar() {
     mb: 1.5,
     borderRadius: 2,
     transition: "all 0.3s ease",
+    minHeight: 48,
+    px: isExpanded ? 2 : "auto",
+    justifyContent: isExpanded ? "initial" : "center",
     backgroundColor: isActive
       ? alpha(theme.palette.primary.main, 0.15)
       : "transparent",
@@ -44,73 +52,57 @@ export default function Sidebar() {
         theme.palette.primary.main,
         mode === "dark" ? 0.3 : 0.2
       )}`,
-      transform: "translateX(6px)",
+      transform: isExpanded ? "translateX(6px)" : "scale(1.1)",
     },
     "& .MuiListItemIcon-root": {
-      minWidth: 40,
-      color: isActive
-        ? theme.palette.primary.main
-        : mode === "dark"
-        ? alpha(theme.palette.common.white, 0.7)
-        : alpha(theme.palette.common.black, 0.7),
-      filter: isActive
-        ? `drop-shadow(0 0 6px ${alpha(theme.palette.primary.main, 0.6)})`
-        : "none",
+      minWidth: 0,
+      mr: isExpanded ? 2 : "auto",
+      justifyContent: "center",
+      color: isActive ? theme.palette.primary.main : "inherit",
     },
     "& .MuiListItemText-primary": {
-      fontWeight: isActive ? 600 : 400,
-      fontSize: "0.95rem",
+      opacity: isExpanded ? 1 : 0,
       color: isActive
         ? theme.palette.primary.main
         : mode === "dark"
-        ? alpha(theme.palette.common.white, 0.7)
-        : alpha(theme.palette.common.black, 0.7),
-      textShadow: isActive
-        ? `0 0 8px ${alpha(theme.palette.primary.main, 0.4)}`
-        : "none",
+        ? theme.palette.common.white
+        : theme.palette.common.black,
+      fontWeight: isActive ? 600 : 400,
     },
   });
 
   return (
-    <Box>
+    <>
       <Toolbar />
-      <List
-        sx={{
-          px: 2,
-          "& .MuiListItemButton-root": {
-            position: "relative",
-            "&::after": {
-              content: '""',
-              position: "absolute",
-              bottom: -1,
-              left: 0,
-              width: "100%",
-              height: "1px",
-              background: `linear-gradient(90deg, ${alpha(
-                theme.palette.primary.main,
-                0
-              )} 0%, ${alpha(theme.palette.primary.main, 0.1)} 50%, ${alpha(
-                theme.palette.primary.main,
-                0
-              )} 100%)`,
-            },
-          },
-        }}
-      >
-        {menuItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <ListItemButton
-              key={item.text}
-              onClick={() => navigate(item.path)}
-              sx={getItemStyles(isActive)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          );
-        })}
-      </List>
-    </Box>
+      <Box sx={{ px: isExpanded ? 2 : 1 }}>
+        <List>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Tooltip
+                key={item.text}
+                title={!isExpanded ? item.text : ""}
+                placement="right"
+              >
+                <ListItemButton
+                  onClick={() => navigate(item.path)}
+                  sx={getItemStyles(isActive)}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      opacity: isExpanded ? 1 : 0,
+                      transition: "opacity 0.2s",
+                      display: isExpanded ? "block" : "none",
+                    }}
+                  />
+                </ListItemButton>
+              </Tooltip>
+            );
+          })}
+        </List>
+      </Box>
+    </>
   );
 }

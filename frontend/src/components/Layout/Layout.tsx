@@ -17,6 +17,8 @@ import {
   ListItemIcon,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SecurityIcon from "@mui/icons-material/Security";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -28,16 +30,22 @@ import Sidebar from "./Sidebar";
 import { useThemeContext } from "../../theme/hooks";
 import { alpha } from "@mui/material/styles";
 
-const drawerWidth = 240;
+const expandedWidth = 240;
+const collapsedWidth = 65;
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { mode, toggleTheme } = useThemeContext();
   const theme = useTheme();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleDrawerExpand = () => {
+    setIsExpanded(!isExpanded);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -48,13 +56,15 @@ export default function Layout() {
     setAnchorEl(null);
   };
 
+  const currentWidth = isExpanded ? expandedWidth : collapsedWidth;
+
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex", flexDirection: "row", minHeight: "100vh" }}>
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { xs: "100%", sm: `calc(100% - ${currentWidth}px)` },
+          marginLeft: { xs: 0, sm: `${currentWidth}px` },
           zIndex: theme.zIndex.drawer + 1,
           background:
             mode === "dark"
@@ -62,6 +72,10 @@ export default function Layout() {
               : "linear-gradient(90deg, #ffffff 0%, #f8fafc 100%)",
           borderBottom: `1px solid ${mode === "dark" ? "#1a365d" : "#e2e8f0"}`,
           boxShadow: "none",
+          transition: theme.transitions.create(["width", "margin-left"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         <Toolbar sx={{ justifyContent: "space-between" }}>
@@ -254,62 +268,92 @@ export default function Layout() {
         </Toolbar>
       </AppBar>
 
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: { xs: "block", sm: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: expandedWidth,
+            borderRight: "none",
+            background:
+              mode === "dark"
+                ? "linear-gradient(180deg, #0a192f 0%, #0f2847 100%)"
+                : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+          },
+        }}
       >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: drawerWidth,
-              backgroundColor: mode === "dark" ? "#0f2847" : "#ffffff",
-              backgroundImage: "none",
-              borderRight: `1px solid ${
-                mode === "dark" ? "#1a365d" : "#e2e8f0"
-              }`,
-            },
-          }}
-        >
-          <Sidebar />
-        </Drawer>
+        <Sidebar isExpanded={true} />
+      </Drawer>
 
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: drawerWidth,
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: "none", sm: "block" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: currentWidth,
+            borderRight: "none",
+            background:
+              mode === "dark"
+                ? "linear-gradient(180deg, #0a192f 0%, #0f2847 100%)"
+                : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+            overflowX: "hidden",
+            transition: theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          },
+        }}
+        open
+      >
+        <Box sx={{ position: "relative" }}>
+          <IconButton
+            onClick={handleDrawerExpand}
+            sx={{
+              position: "absolute",
+              right: -12,
+              top: 12,
+              zIndex: 10,
               backgroundColor: mode === "dark" ? "#0f2847" : "#ffffff",
-              backgroundImage: "none",
-              borderRight: `1px solid ${
-                mode === "dark" ? "#1a365d" : "#e2e8f0"
-              }`,
-            },
-          }}
-          open
-        >
-          <Sidebar />
-        </Drawer>
-      </Box>
+              border: `1px solid ${mode === "dark" ? "#1a365d" : "#e2e8f0"}`,
+              borderRadius: 1,
+              padding: "4px",
+              "&:hover": {
+                backgroundColor: mode === "dark" ? "#1a365d" : "#f8fafc",
+              },
+              "& .MuiSvgIcon-root": {
+                fontSize: "1.2rem",
+                color: theme.palette.primary.main,
+              },
+            }}
+          >
+            {isExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+          <Sidebar isExpanded={isExpanded} />
+        </Box>
+      </Drawer>
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 3 },
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          minHeight: "100vh",
+          p: 3,
+          width: { xs: "100%", sm: `calc(100% - ${currentWidth}px)` },
+          marginLeft: { xs: 0, sm: `${currentWidth}px` },
           background:
             mode === "dark"
               ? "linear-gradient(135deg, #0a192f 0%, #0f2847 100%)"
-              : "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
+              : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+          transition: theme.transitions.create(["width", "margin-left"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Toolbar />
