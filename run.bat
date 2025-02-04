@@ -1,0 +1,3 @@
+@echo off
+echo 🛡️ Iniciando SafeShield AI...
+python app.py 
