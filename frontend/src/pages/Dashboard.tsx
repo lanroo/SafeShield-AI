@@ -8,6 +8,7 @@ import { StatCardProps } from "../types/components";
 
 export default function Dashboard() {
   const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   const StatCard = ({ icon: Icon, title, value, color }: StatCardProps) => (
     <Paper
@@ -30,7 +31,11 @@ export default function Dashboard() {
         <Box sx={{ ml: 2 }}>
           <Typography
             variant="body2"
-            sx={{ color: alpha(theme.palette.common.white, 0.7) }}
+            sx={{
+              color: isDark
+                ? alpha(theme.palette.common.white, 0.7)
+                : "rgb(0 0 0 / 70%)",
+            }}
           >
             {title}
           </Typography>
@@ -38,7 +43,7 @@ export default function Dashboard() {
             variant="h5"
             sx={{
               color: color,
-              textShadow: `0 0 8px ${alpha(color, 0.4)}`,
+              textShadow: isDark ? `0 0 8px ${alpha(color, 0.4)}` : "none",
               fontWeight: 500,
             }}
           >

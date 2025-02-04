@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Paper, Typography, useTheme } from "@mui/material";
 import * as d3 from "d3";
 import { feature } from "topojson-client";
 import { Attack } from "../../types/components";
@@ -15,6 +15,8 @@ const minZoom = 1;
 const maxZoom = 8;
 
 export default function AttackMap() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const svgRef = useRef<SVGSVGElement>(null);
   const [worldData, setWorldData] = useState<WorldTopology | null>(null);
 
@@ -45,7 +47,7 @@ export default function AttackMap() {
     const svg = d3
       .select(svgRef.current)
       .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("background-color", "transparent");
+      .style("background-color", isDark ? "transparent" : "#eef0f4");
 
     // Grupo principal para aplicar transformações
     const g = svg.append("g");
@@ -178,7 +180,7 @@ export default function AttackMap() {
     const interval = setInterval(generateRandomAttack, 1000);
 
     return () => clearInterval(interval);
-  }, [worldData]);
+  }, [worldData, isDark]);
 
   return (
     <Paper
@@ -186,10 +188,19 @@ export default function AttackMap() {
       sx={{
         p: 2,
         backgroundColor: "transparent",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        border: `1px solid ${
+          isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)"
+        }`,
       }}
     >
-      <Typography variant="h6" gutterBottom sx={{ color: "#00ffff", mb: 2 }}>
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{
+          color: isDark ? "#00ffff" : "#1e3a5c",
+          mb: 2,
+        }}
+      >
         Mapa de Ataques em Tempo Real
       </Typography>
       <Box
