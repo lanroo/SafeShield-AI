@@ -10,7 +10,17 @@ import {
   Card,
   CardContent,
   SelectChangeEvent,
+  useTheme,
+  Chip,
+  IconButton,
+  Tooltip,
+  alpha,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SecurityIcon from "@mui/icons-material/Security";
+import RouterIcon from "@mui/icons-material/Router";
+import StorageIcon from "@mui/icons-material/Storage";
+import WarningIcon from "@mui/icons-material/Warning";
 import { api } from "../api/config";
 
 interface MonitoringConfig {
@@ -18,6 +28,7 @@ interface MonitoringConfig {
     id: string;
     name: string;
     description: string;
+    icon?: string;
   }[];
   asset_types: {
     id: string;
@@ -28,6 +39,13 @@ interface MonitoringConfig {
     id: string;
     name: string;
     color: string;
+    icon?: string;
+  }[];
+  threat_types: {
+    id: string;
+    name: string;
+    description: string;
+    severity: string;
   }[];
 }
 
@@ -38,6 +56,9 @@ interface Stats {
   assets: {
     [key: string]: number;
   };
+  threats: {
+    [key: string]: number;
+  };
 }
 
 interface FilterType {
@@ -45,6 +66,8 @@ interface FilterType {
   asset?: string;
   criticality?: string;
   view?: string;
+  threat_type?: string;
+  time_range?: string;
 }
 
 interface MonitoringFiltersProps {
@@ -54,97 +77,201 @@ interface MonitoringFiltersProps {
 export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
   onFilterChange,
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   const [config, setConfig] = useState<MonitoringConfig | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [selectedView, setSelectedView] = useState("general");
   const [selectedNetwork, setSelectedNetwork] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("");
   const [selectedCriticality, setSelectedCriticality] = useState("");
+  const [selectedTimeRange, setSelectedTimeRange] = useState("24h");
 
   useEffect(() => {
-    // Carrega configurações de monitoramento
     const loadConfig = async () => {
-      const response = await api.get("/api/config/monitoring");
-      setConfig(response.data);
+      try {
+        const response = await api.get("/api/config/monitoring");
+        setConfig(response.data);
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+      }
     };
 
-    // Carrega estatísticas
     const loadStats = async () => {
-      const [networkStats, assetStats] = await Promise.all([
-        api.get("/api/stats/network"),
-        api.get("/api/stats/assets"),
-      ]);
-      setStats({
-        network: networkStats.data,
-        assets: assetStats.data,
-      });
+      try {
+        const [networkStats, assetStats, threatStats] = await Promise.all([
+          api.get("/api/stats/network"),
+          api.get("/api/stats/assets"),
+          api.get("/api/stats/threats"),
+        ]);
+        setStats({
+          network: networkStats.data,
+          assets: assetStats.data,
+          threats: threatStats.data,
+        });
+      } catch (error) {
+        console.error("Erro ao carregar estatísticas:", error);
+      }
     };
 
     loadConfig();
     loadStats();
   }, []);
 
+  const handleRefresh = async () => {
+    try {
+      const [networkStats, assetStats, threatStats] = await Promise.all([
+        api.get("/api/stats/network"),
+        api.get("/api/stats/assets"),
+        api.get("/api/stats/threats"),
+      ]);
+      setStats({
+        network: networkStats.data,
+        assets: assetStats.data,
+        threats: threatStats.data,
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar estatísticas:", error);
+    }
+  };
+
   const handleViewChange = (event: SelectChangeEvent) => {
     const view = event.target.value;
     setSelectedView(view);
-
-    // Reseta outros filtros
     setSelectedNetwork("");
     setSelectedAsset("");
     setSelectedCriticality("");
-
     onFilterChange({ view });
   };
 
   const handleNetworkChange = (event: SelectChangeEvent) => {
     const network = event.target.value;
     setSelectedNetwork(network);
-    onFilterChange({ network });
+    onFilterChange({ network, view: selectedView });
   };
 
   const handleAssetChange = (event: SelectChangeEvent) => {
     const asset = event.target.value;
     setSelectedAsset(asset);
-    onFilterChange({ asset });
+    onFilterChange({ asset, view: selectedView });
   };
 
   const handleCriticalityChange = (event: SelectChangeEvent) => {
     const criticality = event.target.value;
     setSelectedCriticality(criticality);
-    onFilterChange({ criticality });
+    onFilterChange({ criticality, view: selectedView });
+  };
+
+  const handleTimeRangeChange = (event: SelectChangeEvent) => {
+    const timeRange = event.target.value;
+    setSelectedTimeRange(timeRange);
+    onFilterChange({ time_range: timeRange, view: selectedView });
   };
 
   if (!config || !stats) return <div>Carregando filtros...</div>;
 
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Visualização do Monitoramento
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            color: isDark
+              ? theme.palette.primary.light
+              : theme.palette.primary.dark,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <SecurityIcon /> Monitoramento de Segurança
+        </Typography>
+        <Tooltip title="Atualizar estatísticas">
+          <IconButton onClick={handleRefresh} color="primary">
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
-      <Grid container spacing={2}>
+      <Grid container spacing={2} sx={{ width: "calc(100% + 369px)" }}>
         {/* Seletor de Visualização */}
-        <Grid item xs={12} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Tipo de Visualização</InputLabel>
-            <Select value={selectedView} onChange={handleViewChange}>
-              <MenuItem value="general">Visão Geral</MenuItem>
-              <MenuItem value="network">Por Rede</MenuItem>
-              <MenuItem value="assets">Por Ativos</MenuItem>
-              <MenuItem value="criticality">Por Criticidade</MenuItem>
+        <Grid item xs={12} md={2}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Visualização</InputLabel>
+            <Select
+              value={selectedView}
+              onChange={handleViewChange}
+              sx={{
+                "& .MuiSelect-select": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                },
+              }}
+            >
+              <MenuItem value="general">
+                <SecurityIcon fontSize="small" /> Visão Geral
+              </MenuItem>
+              <MenuItem value="network">
+                <RouterIcon fontSize="small" /> Por Rede
+              </MenuItem>
+              <MenuItem value="assets">
+                <StorageIcon fontSize="small" /> Por Ativos
+              </MenuItem>
+              <MenuItem value="criticality">
+                <WarningIcon fontSize="small" /> Por Criticidade
+              </MenuItem>
             </Select>
           </FormControl>
         </Grid>
 
-        {/* Filtros específicos baseados na visualização selecionada */}
+        {/* Filtro de Período */}
+        <Grid item xs={12} md={2}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Período</InputLabel>
+            <Select value={selectedTimeRange} onChange={handleTimeRangeChange}>
+              <MenuItem value="1h">Última hora</MenuItem>
+              <MenuItem value="24h">Últimas 24 horas</MenuItem>
+              <MenuItem value="7d">Últimos 7 dias</MenuItem>
+              <MenuItem value="30d">Últimos 30 dias</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Filtros específicos baseados na visualização */}
         {selectedView === "network" && (
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <FormControl fullWidth>
               <InputLabel>Zona de Rede</InputLabel>
-              <Select value={selectedNetwork} onChange={handleNetworkChange}>
+              <Select
+                value={selectedNetwork}
+                onChange={handleNetworkChange}
+                sx={{
+                  "& .MuiSelect-select": {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  },
+                }}
+              >
                 {config.network_zones.map((zone) => (
                   <MenuItem key={zone.id} value={zone.id}>
-                    {zone.name} ({stats.network[zone.id] || 0} eventos)
+                    <RouterIcon fontSize="small" />
+                    {zone.name}
+                    <Chip
+                      size="small"
+                      label={stats.network[zone.id] || 0}
+                      sx={{ ml: 1 }}
+                      color={stats.network[zone.id] > 0 ? "primary" : "default"}
+                    />
                   </MenuItem>
                 ))}
               </Select>
@@ -153,14 +280,30 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
         )}
 
         {selectedView === "assets" && (
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <FormControl fullWidth>
               <InputLabel>Tipo de Ativo</InputLabel>
-              <Select value={selectedAsset} onChange={handleAssetChange}>
+              <Select
+                value={selectedAsset}
+                onChange={handleAssetChange}
+                sx={{
+                  "& .MuiSelect-select": {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  },
+                }}
+              >
                 {config.asset_types.map((type) => (
                   <MenuItem key={type.id} value={type.id}>
-                    {type.icon} {type.name} ({stats.assets[type.id] || 0}{" "}
-                    eventos)
+                    <StorageIcon fontSize="small" />
+                    {type.name}
+                    <Chip
+                      size="small"
+                      label={stats.assets[type.id] || 0}
+                      sx={{ ml: 1 }}
+                      color={stats.assets[type.id] > 0 ? "primary" : "default"}
+                    />
                   </MenuItem>
                 ))}
               </Select>
@@ -169,20 +312,44 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
         )}
 
         {selectedView === "criticality" && (
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <FormControl fullWidth>
               <InputLabel>Nível de Criticidade</InputLabel>
               <Select
                 value={selectedCriticality}
                 onChange={handleCriticalityChange}
+                sx={{
+                  "& .MuiSelect-select": {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  },
+                }}
               >
                 {config.criticality_levels.map((level) => (
                   <MenuItem
                     key={level.id}
                     value={level.id}
-                    sx={{ color: level.color }}
+                    sx={{
+                      color: level.color,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
                   >
+                    <WarningIcon fontSize="small" />
                     {level.name}
+                    <Chip
+                      size="small"
+                      label={stats.threats[level.id] || 0}
+                      sx={{
+                        ml: 1,
+                        backgroundColor: alpha(level.color, 0.1),
+                        color: level.color,
+                        borderColor: level.color,
+                      }}
+                      variant="outlined"
+                    />
                   </MenuItem>
                 ))}
               </Select>
@@ -195,30 +362,145 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
       {selectedView === "general" && (
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item xs={12} md={4}>
-            <Card>
+            <Card
+              sx={{
+                backgroundColor: isDark
+                  ? alpha(theme.palette.primary.main, 0.1)
+                  : alpha(theme.palette.primary.light, 0.1),
+                border: `1px solid ${
+                  isDark
+                    ? alpha(theme.palette.primary.main, 0.2)
+                    : alpha(theme.palette.primary.light, 0.2)
+                }`,
+              }}
+            >
               <CardContent>
-                <Typography variant="h6">Eventos por Rede</Typography>
+                <Typography
+                  variant="h6"
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                >
+                  <RouterIcon /> Eventos por Rede
+                </Typography>
                 {Object.entries(stats.network).map(([zone, count]) => (
-                  <Typography key={zone}>
-                    {config.network_zones.find((z) => z.id === zone)?.name}:{" "}
-                    {count}
-                  </Typography>
+                  <Box
+                    key={zone}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 1,
+                    }}
+                  >
+                    <Typography>
+                      {config.network_zones.find((z) => z.id === zone)?.name}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={count}
+                      color={count > 0 ? "primary" : "default"}
+                      variant="outlined"
+                    />
+                  </Box>
                 ))}
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <Card>
+            <Card
+              sx={{
+                backgroundColor: isDark
+                  ? alpha(theme.palette.secondary.main, 0.1)
+                  : alpha(theme.palette.secondary.light, 0.1),
+                border: `1px solid ${
+                  isDark
+                    ? alpha(theme.palette.secondary.main, 0.2)
+                    : alpha(theme.palette.secondary.light, 0.2)
+                }`,
+              }}
+            >
               <CardContent>
-                <Typography variant="h6">Eventos por Tipo de Ativo</Typography>
+                <Typography
+                  variant="h6"
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                >
+                  <StorageIcon /> Eventos por Tipo de Ativo
+                </Typography>
                 {Object.entries(stats.assets).map(([type, count]) => (
-                  <Typography key={type}>
-                    {config.asset_types.find((t) => t.id === type)?.icon}{" "}
-                    {config.asset_types.find((t) => t.id === type)?.name}:{" "}
-                    {count}
-                  </Typography>
+                  <Box
+                    key={type}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 1,
+                    }}
+                  >
+                    <Typography>
+                      {config.asset_types.find((t) => t.id === type)?.name}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={count}
+                      color={count > 0 ? "secondary" : "default"}
+                      variant="outlined"
+                    />
+                  </Box>
                 ))}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Card
+              sx={{
+                backgroundColor: isDark
+                  ? alpha(theme.palette.error.main, 0.1)
+                  : alpha(theme.palette.error.light, 0.1),
+                border: `1px solid ${
+                  isDark
+                    ? alpha(theme.palette.error.main, 0.2)
+                    : alpha(theme.palette.error.light, 0.2)
+                }`,
+              }}
+            >
+              <CardContent>
+                <Typography
+                  variant="h6"
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                >
+                  <WarningIcon /> Eventos por Criticidade
+                </Typography>
+                {Object.entries(stats.threats).map(([level, count]) => {
+                  const levelConfig = config.criticality_levels.find(
+                    (l) => l.id === level
+                  );
+                  return (
+                    <Box
+                      key={level}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      <Typography sx={{ color: levelConfig?.color }}>
+                        {levelConfig?.name}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={count}
+                        sx={{
+                          backgroundColor: alpha(
+                            levelConfig?.color || theme.palette.error.main,
+                            0.1
+                          ),
+                          color: levelConfig?.color,
+                          borderColor: levelConfig?.color,
+                        }}
+                        variant="outlined"
+                      />
+                    </Box>
+                  );
+                })}
               </CardContent>
             </Card>
           </Grid>

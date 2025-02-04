@@ -8,6 +8,14 @@ import AttackMap from "../components/AttackMap/AttackMap";
 import { StatCardProps } from "../types/components";
 import { logService, Log } from "../services/logService";
 import { threatService } from "../services/threatService";
+import { MonitoringFilters } from "../components/MonitoringFilters";
+
+interface FilterType {
+  network?: string;
+  asset?: string;
+  criticality?: string;
+  view?: string;
+}
 
 export default function Dashboard() {
   const theme = useTheme();
@@ -19,41 +27,57 @@ export default function Dashboard() {
   const [logs, setLogs] = useState(0);
   const [recentEvents, setRecentEvents] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterType>({});
 
   // Função para carregar dados
-  const loadDashboardData = async () => {
-    try {
-      const [threatsData, logsData, eventsData] = await Promise.all([
-        threatService.getThreats().catch(() => []),
-        logService.getLogs().catch(() => []),
-        logService.getRecentEvents().catch(() => []),
-      ]);
-
-      if (threatsData && logsData) {
-        const threatPercentage =
-          (threatsData.length / (logsData.length || 1)) * 100;
-        const systemStatusValue = Math.max(0, 100 - threatPercentage);
-        setSystemStatus(Math.round(systemStatusValue));
-        setThreats(threatsData.length);
-        setLogs(logsData.length);
-      }
-
-      if (eventsData && eventsData.length > 0) {
-        setRecentEvents(eventsData.slice(0, 10));
-      }
-    } catch (error) {
-      if (error.code !== "ERR_NETWORK") {
-        console.error("Erro ao carregar dados do dashboard:", error);
-      }
-    }
-  };
-
-  // Carrega dados ao montar o componente
   useEffect(() => {
+    // Moved loadDashboardData inside useEffect
+    const loadDashboardData = async () => {
+      try {
+        let logsEndpoint = "/api/logs";
+
+        // Aplica filtros na URL
+        if (filters.network) {
+          logsEndpoint = `/api/logs/network/${filters.network}`;
+        } else if (filters.asset) {
+          logsEndpoint = `/api/logs/asset/${filters.asset}`;
+        } else if (filters.criticality) {
+          logsEndpoint = `/api/logs/criticality/${filters.criticality}`;
+        }
+
+        const [threatsData, logsData, eventsData] = await Promise.all([
+          threatService.getThreats().catch(() => []),
+          logService.getLogs(logsEndpoint).catch(() => []),
+          logService.getRecentEvents().catch(() => []),
+        ]);
+
+        if (threatsData && logsData) {
+          const threatPercentage =
+            (threatsData.length / (logsData.length || 1)) * 100;
+          const systemStatusValue = Math.max(0, 100 - threatPercentage);
+          setSystemStatus(Math.round(systemStatusValue));
+          setThreats(threatsData.length);
+          setLogs(logsData.length);
+        }
+
+        if (eventsData && eventsData.length > 0) {
+          setRecentEvents(eventsData.slice(0, 10));
+        }
+      } catch (error: unknown) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code !== "ERR_NETWORK"
+        ) {
+          console.error("Erro ao carregar dados do dashboard:", error);
+        }
+      }
+    };
+
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        // Simula 10 eventos iniciais
         await logService.simulateMultiple(10);
         await loadDashboardData();
       } catch (error) {
@@ -65,15 +89,17 @@ export default function Dashboard() {
 
     loadInitialData();
 
-    // Atualiza dados a cada 5 segundos
     const dataInterval = setInterval(loadDashboardData, 5000);
-
-    // Simula um novo evento a cada 3 segundos
     const simulationInterval = setInterval(async () => {
       try {
         await logService.simulateEvent();
-      } catch (error) {
-        if (error.code !== "ERR_NETWORK") {
+      } catch (error: unknown) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code !== "ERR_NETWORK"
+        ) {
           console.error("Erro ao simular evento:", error);
         }
       }
@@ -83,7 +109,11 @@ export default function Dashboard() {
       clearInterval(dataInterval);
       clearInterval(simulationInterval);
     };
-  }, []);
+  }, [filters]); // Removed loadDashboardData from dependencies
+
+  const handleFilterChange = (newFilters: FilterType) => {
+    setFilters(newFilters);
+  };
 
   const StatCard = ({ icon: Icon, title, value, color }: StatCardProps) => (
     <Paper
@@ -151,6 +181,9 @@ export default function Dashboard() {
   return (
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <MonitoringFilters onFilterChange={handleFilterChange} />
+        </Grid>
         <Grid item xs={12} md={4}>
           <StatCard
             icon={SecurityIcon}

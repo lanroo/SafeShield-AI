@@ -27,21 +27,21 @@ def create_access_log(db: Session, log: AccessLogCreate, threat_score: float):
     return db_log
 
 def get_logs(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
     sort: str = "desc",
     network_zone: str = None,
     asset_type: str = None,
     criticality: str = None,
+    alert_level: str = None,
+    start_time: datetime = None,
     count_only: bool = False
 ):
-    """
-    Obtém logs com filtros opcionais
-    """
+    """Obtém logs com filtros"""
     query = db.query(AccessLog)
-    
-    # Aplica filtros se fornecidos
+
+    # Aplica filtros
     if network_zone:
         query = query.filter(AccessLog.network_zone == network_zone)
     
@@ -51,17 +51,23 @@ def get_logs(
     if criticality:
         query = query.filter(AccessLog.alert_level == criticality)
     
+    if alert_level:
+        query = query.filter(AccessLog.alert_level == alert_level)
+    
+    if start_time:
+        query = query.filter(AccessLog.timestamp >= start_time)
+
     # Se só quer a contagem
     if count_only:
         return query.count()
-    
-    # Ordenação
-    if sort.lower() == "desc":
+
+    # Aplica ordenação
+    if sort == "desc":
         query = query.order_by(desc(AccessLog.timestamp))
     else:
         query = query.order_by(AccessLog.timestamp)
-    
-    # Paginação
+
+    # Aplica paginação
     return query.offset(skip).limit(limit).all()
 
 def get_threats(db: Session):

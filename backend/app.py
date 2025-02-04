@@ -322,6 +322,39 @@ async def get_asset_stats(db: Session = Depends(get_db)):
         "api": get_logs(db, asset_type="api", count_only=True)
     }
 
+@app.get("/api/stats/threats")
+async def get_threat_stats(db: Session = Depends(get_db)):
+    """Retorna estatísticas por nível de ameaça"""
+    return {
+        "BAIXA": get_logs(db, alert_level="BAIXA", count_only=True),
+        "MÉDIA": get_logs(db, alert_level="MÉDIA", count_only=True),
+        "ALTA": get_logs(db, alert_level="ALTA", count_only=True),
+        "CRÍTICA": get_logs(db, alert_level="CRÍTICA", count_only=True)
+    }
+
+@app.get("/api/logs/time/{time_range}")
+async def list_logs_by_time(
+    time_range: str,  # 1h, 24h, 7d, 30d
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Lista logs por período de tempo"""
+    now = datetime.now()
+    
+    if time_range == "1h":
+        start_time = now - timedelta(hours=1)
+    elif time_range == "24h":
+        start_time = now - timedelta(days=1)
+    elif time_range == "7d":
+        start_time = now - timedelta(days=7)
+    elif time_range == "30d":
+        start_time = now - timedelta(days=30)
+    else:
+        raise HTTPException(status_code=400, detail="Período inválido")
+    
+    return get_logs(db, skip=skip, limit=limit, start_time=start_time)
+
 @app.get("/api/config/monitoring")
 async def get_monitoring_config():
     """Retorna as configurações de monitoramento disponíveis"""
@@ -341,10 +374,10 @@ async def get_monitoring_config():
             {"id": "api", "name": "APIs", "icon": "🔌"}
         ],
         "criticality_levels": [
-            {"id": "BAIXA", "name": "Baixa", "color": "green"},
-            {"id": "MÉDIA", "name": "Média", "color": "yellow"},
-            {"id": "ALTA", "name": "Alta", "color": "orange"},
-            {"id": "CRÍTICA", "name": "Crítica", "color": "red"}
+            {"id": "BAIXA", "name": "Baixa", "color": "#4caf50"},
+            {"id": "MÉDIA", "name": "Média", "color": "#ff9800"},
+            {"id": "ALTA", "name": "Alta", "color": "#f44336"},
+            {"id": "CRÍTICA", "name": "Crítica", "color": "#d32f2f"}
         ]
     }
 
@@ -369,5 +402,5 @@ def generate_alert_level():
     return random.choice(["BAIXO", "MÉDIO", "ALTO", "CRÍTICO"])
 
 if __name__ == "__main__":
-    print("🚀 Iniciando servidor backend na porta 8001...")
-    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True) 
+    print("🚀 Iniciando servidor backend na porta 8002...")
+    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=True) 

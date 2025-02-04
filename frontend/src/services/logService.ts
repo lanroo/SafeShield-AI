@@ -12,8 +12,8 @@ export interface Log {
 }
 
 export const logService = {
-  async getLogs() {
-    const response = await api.get<Log[]>("/api/logs");
+  async getLogs(endpoint: string = "/api/logs") {
+    const response = await api.get<Log[]>(endpoint);
     return response.data;
   },
 
