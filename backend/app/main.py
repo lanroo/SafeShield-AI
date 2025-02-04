@@ -5,11 +5,13 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Dict, Any
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
+# Mudar imports para relativos
 from backend.database import SessionLocal, engine, Base
-from backend import model as ml_model
+from backend.model import predict_threat
 from backend.schemas import AccessLog, AccessLogCreate
-from backend import crud
+from backend.crud import create_access_log, get_logs, get_threats
 
 # Criar tabelas no banco de dados
 Base.metadata.create_all(bind=engine)
@@ -70,6 +72,15 @@ app = FastAPI(
     redoc_url=None  # Desabilita ReDoc padrão
 )
 
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Dependency para banco de dados
 def get_db():
     db = SessionLocal()
@@ -119,21 +130,21 @@ async def system_status():
     summary="Registrar novo log de acesso",
     description="Registra e analisa um novo log de acesso em busca de ameaças")
 async def create_log(log: AccessLogCreate, db: Session = Depends(get_db)):
-    threat_score = ml_model.predict_threat(log)
-    return crud.create_access_log(db=db, log=log, threat_score=threat_score)
+    threat_score = predict_threat(log)
+    return create_access_log(db=db, log=log, threat_score=threat_score)
 
 @app.get("/api/logs",
     response_model=List[AccessLog],
     tags=["Logs"],
     summary="Listar logs de acesso")
 async def list_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_logs(db, skip=skip, limit=limit)
+    return get_logs(db, skip=skip, limit=limit)
 
 @app.get("/api/threats",
     tags=["Ameaças"],
     summary="Listar ameaças detectadas")
 async def list_threats(db: Session = Depends(get_db)):
-    return crud.get_threats(db)
+    return get_threats(db)
 
 # Inicialização
 if __name__ == "__main__":

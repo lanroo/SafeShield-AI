@@ -1,7 +1,8 @@
 fastapi==0.109.0
 uvicorn==0.27.0
 sqlalchemy==2.0.25
-pydantic==2.5.3
+psycopg2-binary==2.9.9
+pydantic==2.6.0
 python-dotenv==1.0.0
 pandas==2.2.0
 python-jose==3.3.0
