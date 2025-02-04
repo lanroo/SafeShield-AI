@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles";
 export const createAppTheme = (mode: "light" | "dark") => {
   return createTheme({
     palette: {
-      mode: "dark",
+      mode,
       primary: {
         main: "#00ffff",
         light: "#33ffff",

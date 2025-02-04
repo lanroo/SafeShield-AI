@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Paper, Typography } from "@mui/material";
 import * as d3 from "d3";
-import { GeoPath, GeoProjection } from "d3-geo";
-import { Selection, BaseType } from "d3-selection";
 import { feature } from "topojson-client";
 import { Attack } from "../../types/components";
 import {
@@ -62,7 +60,9 @@ export default function AttackMap() {
       .data(world.features)
       .enter()
       .append("path")
-      .attr("d", path as GeoPath<any, GeoFeature>)
+      .attr("d", function (d) {
+        return path(d) || "";
+      })
       .style("fill", "#2a3442")
       .style("stroke", "#3f4b5b")
       .style("stroke-width", "0.5px")
@@ -76,7 +76,7 @@ export default function AttackMap() {
         g.attr("transform", event.transform);
         const scale = event.transform.k;
         g.selectAll("path").style("stroke-width", `${0.5 / scale}px`);
-        g.selectAll("circle").attr("r", (d, i, nodes) => {
+        g.selectAll("circle").attr("r", (_d, i, nodes) => {
           const baseRadius = d3.select(nodes[i]).attr("data-base-radius");
           return baseRadius ? Number(baseRadius) / scale : 3 / scale;
         });
@@ -192,10 +192,11 @@ export default function AttackMap() {
       <Typography variant="h6" gutterBottom sx={{ color: "#00ffff", mb: 2 }}>
         Mapa de Ataques em Tempo Real
       </Typography>
-      <Box sx={{ width: "100%", height: "100%" }}>
-        <svg
-          ref={svgRef}
-          style={{
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          "& svg": {
             width: "100%",
             height: "100%",
             maxHeight: "600px",
@@ -203,8 +204,10 @@ export default function AttackMap() {
             "&:active": {
               cursor: "grabbing",
             },
-          }}
-        />
+          },
+        }}
+      >
+        <svg ref={svgRef} />
       </Box>
     </Paper>
   );
