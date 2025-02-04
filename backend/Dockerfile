@@ -1,20 +1,17 @@
 FROM python:3.11-slim
 
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Instalar dependências
-COPY backend/requirements.txt .
+# Copiar requirements primeiro para aproveitar o cache
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código
-COPY app.py .
-COPY backend backend/
-
-# Adicionar o diretório ao PYTHONPATH
-ENV PYTHONPATH=/app
+COPY . .
 
 # Expor porta
-EXPOSE 8000
+EXPOSE 8001
 
-# Comando para rodar a aplicação
-CMD ["python", "app.py"] 
+# Comando para iniciar a aplicação
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"] 

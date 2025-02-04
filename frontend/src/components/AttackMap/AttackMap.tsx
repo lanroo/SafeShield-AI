@@ -88,8 +88,20 @@ export default function AttackMap() {
 
     // Função para adicionar um ataque
     const addAttack = (attack: Attack) => {
-      const sourcePos = projection(attack.source)!;
-      const targetPos = projection(attack.target)!;
+      const sourcePos = projection(attack.source);
+      const targetPos = projection(attack.target);
+
+      // Verifica se as coordenadas são válidas
+      if (
+        !sourcePos ||
+        !targetPos ||
+        isNaN(sourcePos[0]) ||
+        isNaN(sourcePos[1]) ||
+        isNaN(targetPos[0]) ||
+        isNaN(targetPos[1])
+      ) {
+        return;
+      }
 
       // Linha do ataque
       const line = g
@@ -168,11 +180,24 @@ export default function AttackMap() {
       const target = attacks[Math.floor(Math.random() * attacks.length)];
 
       if (source !== target) {
-        addAttack({
-          source,
-          target,
-          type: "attack",
-        });
+        const sourcePos = projection(source);
+        const targetPos = projection(target);
+
+        // Verifica se as coordenadas são válidas antes de adicionar o ataque
+        if (
+          sourcePos &&
+          targetPos &&
+          !isNaN(sourcePos[0]) &&
+          !isNaN(sourcePos[1]) &&
+          !isNaN(targetPos[0]) &&
+          !isNaN(targetPos[1])
+        ) {
+          addAttack({
+            source,
+            target,
+            type: "attack",
+          });
+        }
       }
     };
 

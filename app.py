@@ -1,15 +1,10 @@
 import os
 import uvicorn
-from backend.app.main import app as backend_app
+from backend.app import app as backend_app
 
 def start_backend():
     """Inicia o servidor backend FastAPI"""
-    uvicorn.run(
-        "backend.app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=8000, reload=True)
 
 def main():
     """Função principal para iniciar a aplicação"""

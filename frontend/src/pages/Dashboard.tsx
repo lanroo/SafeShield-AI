@@ -3,12 +3,87 @@ import { alpha } from "@mui/material/styles";
 import SecurityIcon from "@mui/icons-material/Security";
 import WarningIcon from "@mui/icons-material/Warning";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import { useEffect, useState } from "react";
 import AttackMap from "../components/AttackMap/AttackMap";
 import { StatCardProps } from "../types/components";
+import { logService, Log } from "../services/logService";
+import { threatService } from "../services/threatService";
 
 export default function Dashboard() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+
+  // Estados para armazenar dados do backend
+  const [systemStatus, setSystemStatus] = useState(0);
+  const [threats, setThreats] = useState(0);
+  const [logs, setLogs] = useState(0);
+  const [recentEvents, setRecentEvents] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Função para carregar dados
+  const loadDashboardData = async () => {
+    try {
+      const [threatsData, logsData, eventsData] = await Promise.all([
+        threatService.getThreats().catch(() => []),
+        logService.getLogs().catch(() => []),
+        logService.getRecentEvents().catch(() => []),
+      ]);
+
+      if (threatsData && logsData) {
+        const threatPercentage =
+          (threatsData.length / (logsData.length || 1)) * 100;
+        const systemStatusValue = Math.max(0, 100 - threatPercentage);
+        setSystemStatus(Math.round(systemStatusValue));
+        setThreats(threatsData.length);
+        setLogs(logsData.length);
+      }
+
+      if (eventsData && eventsData.length > 0) {
+        setRecentEvents(eventsData.slice(0, 10));
+      }
+    } catch (error) {
+      if (error.code !== "ERR_NETWORK") {
+        console.error("Erro ao carregar dados do dashboard:", error);
+      }
+    }
+  };
+
+  // Carrega dados ao montar o componente
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        // Simula 10 eventos iniciais
+        await logService.simulateMultiple(10);
+        await loadDashboardData();
+      } catch (error) {
+        console.error("Erro ao carregar dados iniciais:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+
+    // Atualiza dados a cada 5 segundos
+    const dataInterval = setInterval(loadDashboardData, 5000);
+
+    // Simula um novo evento a cada 3 segundos
+    const simulationInterval = setInterval(async () => {
+      try {
+        await logService.simulateEvent();
+      } catch (error) {
+        if (error.code !== "ERR_NETWORK") {
+          console.error("Erro ao simular evento:", error);
+        }
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(dataInterval);
+      clearInterval(simulationInterval);
+    };
+  }, []);
 
   const StatCard = ({ icon: Icon, title, value, color }: StatCardProps) => (
     <Paper
@@ -20,6 +95,7 @@ export default function Dashboard() {
         borderLeft: `4px solid ${color}`,
         transition: "all 0.3s ease",
         cursor: "pointer",
+        opacity: loading ? 0.7 : 1,
         "&:hover": {
           transform: "translateY(-4px)",
           boxShadow: `0 4px 20px ${alpha(color, 0.3)}`,
@@ -79,7 +155,7 @@ export default function Dashboard() {
           <StatCard
             icon={SecurityIcon}
             title="Sistema Seguro"
-            value="100%"
+            value={`${systemStatus}%`}
             color={theme.palette.success.main}
           />
         </Grid>
@@ -87,7 +163,7 @@ export default function Dashboard() {
           <StatCard
             icon={WarningIcon}
             title="Ameaças Detectadas"
-            value="3"
+            value={threats.toString()}
             color={theme.palette.error.main}
           />
         </Grid>
@@ -95,7 +171,7 @@ export default function Dashboard() {
           <StatCard
             icon={TimelineIcon}
             title="Eventos Registrados"
-            value="150"
+            value={logs.toString()}
             color={theme.palette.info.main}
           />
         </Grid>
@@ -110,56 +186,110 @@ export default function Dashboard() {
             sx={{
               p: 2,
               backgroundColor: "transparent",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
+              border: `1px solid ${
+                isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)"
+              }`,
+              maxHeight: "400px",
+              overflow: "auto",
             }}
           >
             <Typography
               variant="h6"
               gutterBottom
-              sx={{ color: theme.palette.info.main, mb: 2 }}
+              sx={{
+                color: isDark ? theme.palette.info.main : "#1e3a5c",
+                mb: 2,
+              }}
             >
               Últimos Eventos
             </Typography>
             <Box
               sx={{
                 "& > *:not(:last-child)": {
-                  borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderBottom: `1px solid ${
+                    isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)"
+                  }`,
                   pb: 1,
                   mb: 1,
                 },
               }}
             >
-              {[...Array(5)].map((_, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: alpha(theme.palette.common.white, 0.9) }}
-                    >
-                      Tentativa de acesso não autorizado
-                    </Typography>
+              {recentEvents.map((event) => {
+                const eventTime = new Date(event.timestamp);
+                const timeAgo = Math.floor(
+                  (Date.now() - eventTime.getTime()) / 60000
+                );
+
+                return (
+                  <Box
+                    key={event.id}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      p: 1.5,
+                      backgroundColor:
+                        event.login_attempts > 3
+                          ? alpha(theme.palette.error.main, isDark ? 0.1 : 0.05)
+                          : "transparent",
+                      borderRadius: 1,
+                      animation: "slideIn 0.3s ease-out",
+                      "@keyframes slideIn": {
+                        from: {
+                          opacity: 0,
+                          transform: "translateX(-20px)",
+                        },
+                        to: {
+                          opacity: 1,
+                          transform: "translateX(0)",
+                        },
+                      },
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color:
+                            event.login_attempts > 3
+                              ? theme.palette.error.main
+                              : isDark
+                              ? theme.palette.common.white
+                              : theme.palette.common.black,
+                          fontWeight: event.login_attempts > 3 ? 600 : 400,
+                        }}
+                      >
+                        {event.description}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: isDark
+                            ? alpha(theme.palette.common.white, 0.6)
+                            : alpha(theme.palette.common.black, 0.6),
+                          display: "block",
+                          mt: 0.5,
+                        }}
+                      >
+                        IP: {event.ip_address} ({event.country}) -{" "}
+                        {event.login_attempts} tentativas
+                      </Typography>
+                    </Box>
                     <Typography
                       variant="caption"
-                      sx={{ color: alpha(theme.palette.common.white, 0.6) }}
+                      sx={{
+                        color: isDark
+                          ? alpha(theme.palette.common.white, 0.6)
+                          : alpha(theme.palette.common.black, 0.6),
+                        ml: 2,
+                        whiteSpace: "nowrap",
+                      }}
                     >
-                      IP: 192.168.1.{100 + i}
+                      há {timeAgo} min
                     </Typography>
                   </Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: alpha(theme.palette.common.white, 0.6) }}
-                  >
-                    há {5 + i} minutos
-                  </Typography>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           </Paper>
         </Grid>

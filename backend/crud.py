@@ -1,25 +1,71 @@
 from sqlalchemy.orm import Session
-from backend.models import AccessLog as DBAccessLog
-from backend.schemas import AccessLogCreate
-from backend.config import THREAT_SCORE_THRESHOLD
+from sqlalchemy import desc
+from models import AccessLog, Asset
+from schemas import AccessLogCreate
+from datetime import datetime
 
 def create_access_log(db: Session, log: AccessLogCreate, threat_score: float):
-    is_threat = threat_score >= THREAT_SCORE_THRESHOLD
-    db_log = DBAccessLog(
+    """Cria um novo log de acesso"""
+    db_log = AccessLog(
         ip_address=log.ip_address,
         country=log.country,
+        timestamp=log.timestamp or datetime.now(),
         login_attempts=log.login_attempts,
         transaction_value=log.transaction_value,
+        description=log.description,
         threat_score=threat_score,
-        is_threat=is_threat
+        is_threat=threat_score > 0.7,
+        is_internal=log.is_internal,
+        asset_name=log.asset_name,
+        network_zone=log.network_zone,
+        is_authorized=log.is_authorized,
+        alert_level=log.alert_level
     )
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
     return db_log
 
-def get_logs(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(DBAccessLog).offset(skip).limit(limit).all()
+def get_logs(
+    db: Session, 
+    skip: int = 0, 
+    limit: int = 100, 
+    sort: str = "desc",
+    network_zone: str = None,
+    asset_type: str = None,
+    criticality: str = None,
+    count_only: bool = False
+):
+    """
+    Obtém logs com filtros opcionais
+    """
+    query = db.query(AccessLog)
+    
+    # Aplica filtros se fornecidos
+    if network_zone:
+        query = query.filter(AccessLog.network_zone == network_zone)
+    
+    if asset_type:
+        query = query.join(AccessLog.asset).filter(Asset.type == asset_type)
+    
+    if criticality:
+        query = query.filter(AccessLog.alert_level == criticality)
+    
+    # Se só quer a contagem
+    if count_only:
+        return query.count()
+    
+    # Ordenação
+    if sort.lower() == "desc":
+        query = query.order_by(desc(AccessLog.timestamp))
+    else:
+        query = query.order_by(AccessLog.timestamp)
+    
+    # Paginação
+    return query.offset(skip).limit(limit).all()
 
 def get_threats(db: Session):
-    return db.query(DBAccessLog).filter(DBAccessLog.is_threat == True).all() 
+    """Obtém apenas eventos considerados ameaças"""
+    return db.query(AccessLog).filter(
+        AccessLog.threat_score > 0.7
+    ).order_by(desc(AccessLog.timestamp)).all() 
