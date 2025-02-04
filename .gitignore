@@ -43,4 +43,24 @@ ENV/
 
 # System Files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist-ssr/
+
+# Environment
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log* 
