@@ -234,6 +234,8 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
               onChange={handleViewChange}
               variant="outlined"
               sx={{
+                width: "200px",
+                height: "56px",
                 "& .MuiSelect-select": {
                   display: "flex",
                   alignItems: "center",
@@ -267,6 +269,15 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
               value={selectedTimeRange}
               onChange={handleTimeRangeChange}
               variant="outlined"
+              sx={{
+                width: "200px",
+                height: "56px",
+                "& .MuiSelect-select": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                },
+              }}
             >
               <MenuItem value="1h">Última hora</MenuItem>
               <MenuItem value="24h">Últimas 24 horas</MenuItem>
@@ -339,29 +350,62 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
         )}
 
         {selectedView === "assets" && (
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Tipo de Ativo</InputLabel>
+          <Grid item xs={12} md={2}>
+            <FormControl variant="standard" fullWidth sx={{ mb: 2 }}>
+              <InputLabel
+                htmlFor="asset-type-select"
+                sx={{
+                  position: "relative",
+                  transform: "none",
+                  marginBottom: "8px",
+                }}
+              >
+                Tipo de Ativo
+              </InputLabel>
               <Select
+                id="asset-type-select"
                 value={selectedAsset}
                 onChange={handleAssetChange}
+                variant="outlined"
                 sx={{
+                  width: "270px",
+                  height: "56px",
                   "& .MuiSelect-select": {
                     display: "flex",
                     alignItems: "center",
                     gap: 1,
                   },
+                  "& .MuiInputBase-root": {
+                    width: "270px",
+                  },
                 }}
               >
                 {config.asset_types.map((type) => (
-                  <MenuItem key={type.id} value={type.id}>
-                    <StorageIcon fontSize="small" />
+                  <MenuItem
+                    key={type.id}
+                    value={type.id}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <StorageIcon fontSize="small" sx={{ mr: "1rem" }} />
                     {type.name}
+                    <Box sx={{ flexGrow: 1 }} />
                     <Chip
                       size="small"
                       label={stats.assets[type.id] || 0}
-                      sx={{ ml: 1 }}
-                      color={stats.assets[type.id] > 0 ? "primary" : "default"}
+                      sx={{
+                        backgroundColor: theme.palette.error.dark,
+                        color: "#fff",
+                        minWidth: "24px",
+                        height: "24px",
+                        borderRadius: "12px",
+                        "& .MuiChip-label": {
+                          padding: "0 8px",
+                        },
+                      }}
                     />
                   </MenuItem>
                 ))}
@@ -371,13 +415,26 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
         )}
 
         {selectedView === "criticality" && (
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Nível de Criticidade</InputLabel>
+          <Grid item xs={12} md={2}>
+            <FormControl variant="standard" fullWidth sx={{ mb: 2 }}>
+              <InputLabel
+                htmlFor="criticality-level-select"
+                sx={{
+                  position: "relative",
+                  transform: "none",
+                  marginBottom: "8px",
+                }}
+              >
+                Nível de Criticidade
+              </InputLabel>
               <Select
+                id="criticality-level-select"
                 value={selectedCriticality}
                 onChange={handleCriticalityChange}
+                variant="outlined"
                 sx={{
+                  width: "200px",
+                  height: "56px",
                   "& .MuiSelect-select": {
                     display: "flex",
                     alignItems: "center",
@@ -390,13 +447,12 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
                     key={level.id}
                     value={level.id}
                     sx={{
-                      color: level.color,
                       display: "flex",
                       alignItems: "center",
                       gap: 1,
                     }}
                   >
-                    <WarningIcon fontSize="small" />
+                    <WarningIcon fontSize="small" sx={{ color: level.color }} />
                     {level.name}
                     <Chip
                       size="small"
