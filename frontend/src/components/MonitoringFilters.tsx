@@ -169,6 +169,19 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
     onFilterChange({ time_range: timeRange, view: selectedView });
   };
 
+  const getNetworkChipColor = (zoneId: string) => {
+    switch (zoneId) {
+      case "internal":
+        return theme.palette.success;
+      case "dmz":
+        return theme.palette.warning;
+      case "external":
+        return theme.palette.info;
+      default:
+        return theme.palette.primary;
+    }
+  };
+
   if (!config || !stats) return <div>Carregando filtros...</div>;
 
   return (
@@ -265,13 +278,26 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
 
         {/* Filtros específicos baseados na visualização */}
         {selectedView === "network" && (
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Zona de Rede</InputLabel>
+          <Grid item xs={12} md={2}>
+            <FormControl variant="standard" fullWidth sx={{ mb: 2 }}>
+              <InputLabel
+                htmlFor="network-zone-select"
+                sx={{
+                  position: "relative",
+                  transform: "none",
+                  marginBottom: "8px",
+                }}
+              >
+                Zona de Rede
+              </InputLabel>
               <Select
+                id="network-zone-select"
                 value={selectedNetwork}
                 onChange={handleNetworkChange}
+                variant="outlined"
                 sx={{
+                  width: "200px",
+                  height: "56px",
                   "& .MuiSelect-select": {
                     display: "flex",
                     alignItems: "center",
@@ -279,18 +305,34 @@ export const MonitoringFilters: React.FC<MonitoringFiltersProps> = ({
                   },
                 }}
               >
-                {config.network_zones.map((zone) => (
-                  <MenuItem key={zone.id} value={zone.id}>
-                    <RouterIcon fontSize="small" />
-                    {zone.name}
-                    <Chip
-                      size="small"
-                      label={stats.network[zone.id] || 0}
-                      sx={{ ml: 1 }}
-                      color={stats.network[zone.id] > 0 ? "primary" : "default"}
-                    />
-                  </MenuItem>
-                ))}
+                {config.network_zones.map((zone) => {
+                  const chipColor = getNetworkChipColor(zone.id);
+                  return (
+                    <MenuItem
+                      key={zone.id}
+                      value={zone.id}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <RouterIcon fontSize="small" />
+                      {zone.name}
+                      <Chip
+                        size="small"
+                        label={stats.network[zone.id] || 0}
+                        sx={{
+                          ml: 1,
+                          backgroundColor: alpha(chipColor.main, 0.1),
+                          color: chipColor.main,
+                          borderColor: chipColor.main,
+                        }}
+                        variant="outlined"
+                      />
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
           </Grid>
