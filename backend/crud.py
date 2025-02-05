@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from models import AccessLog, Asset
-from schemas import AccessLogCreate
-from datetime import datetime
+from backend.models import AccessLog, Asset
+from backend.schemas import AccessLogCreate
+from datetime import datetime, timedelta
 
 def create_access_log(db: Session, log: AccessLogCreate, threat_score: float):
     """Cria um novo log de acesso"""

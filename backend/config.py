@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configurações do Banco de Dados
-DATABASE_URL = "sqlite:///./safeshield.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/safeshield")
 
 # Configurações da API
 API_VERSION = "1.0.0"

@@ -11,6 +11,8 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -35,14 +37,17 @@ export default function Threats() {
   const isDark = theme.palette.mode === "dark";
   const [threats, setThreats] = useState<Threat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadThreats = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get("/api/threats");
       setThreats(response.data);
     } catch (error) {
       console.error("Erro ao carregar ameaças:", error);
+      setError("Erro ao carregar ameaças. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -50,18 +55,20 @@ export default function Threats() {
 
   useEffect(() => {
     loadThreats();
-    const interval = setInterval(loadThreats, 5000);
+    const interval = setInterval(loadThreats, 30000); // Aumentado para 30 segundos
     return () => clearInterval(interval);
   }, []);
 
   const getAlertColor = (level: string) => {
-    switch (level) {
+    switch (level.toUpperCase()) {
       case "CRÍTICA":
         return theme.palette.error.main;
       case "ALTA":
         return theme.palette.warning.main;
       case "MÉDIA":
         return theme.palette.warning.light;
+      case "BAIXA":
+        return theme.palette.info.main;
       default:
         return theme.palette.info.main;
     }
@@ -79,7 +86,7 @@ export default function Threats() {
     }).format(date);
   };
 
-  if (loading) {
+  if (loading && !threats.length) {
     return (
       <Box
         sx={{
@@ -88,6 +95,7 @@ export default function Threats() {
           alignItems: "center",
           height: "100%",
           width: "100%",
+          minHeight: "400px",
         }}
       >
         <CircularProgress />
@@ -96,13 +104,25 @@ export default function Threats() {
   }
 
   return (
-    <>
+    <Box sx={{ width: "100%", overflow: "hidden" }}>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      </Snackbar>
+
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           mb: 3,
+          px: { xs: 2, sm: 0 },
         }}
       >
         <Typography
@@ -114,87 +134,147 @@ export default function Threats() {
             display: "flex",
             alignItems: "center",
             gap: 1,
+            fontWeight: 600,
           }}
         >
           <WarningAmberIcon /> Ameaças Detectadas
         </Typography>
-        <Tooltip title="Atualizar ameaças">
-          <IconButton onClick={loadThreats} color="error">
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {loading && <CircularProgress size={24} />}
+          <Tooltip title="Atualizar ameaças">
+            <IconButton
+              onClick={loadThreats}
+              disabled={loading}
+              sx={{
+                color: theme.palette.error.main,
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.error.main, 0.1),
+                },
+              }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {threats.map((threat) => (
           <Grid item xs={12} key={threat.id}>
             <Card
+              elevation={0}
               sx={{
                 backgroundColor: isDark
-                  ? alpha(getAlertColor(threat.alert_level), 0.1)
-                  : alpha(getAlertColor(threat.alert_level), 0.05),
+                  ? alpha(getAlertColor(threat.alert_level), 0.05)
+                  : alpha(getAlertColor(threat.alert_level), 0.02),
                 border: `1px solid ${alpha(
                   getAlertColor(threat.alert_level),
-                  0.2
+                  isDark ? 0.2 : 0.1
                 )}`,
                 transition: "all 0.3s ease",
                 "&:hover": {
                   transform: "translateY(-2px)",
                   boxShadow: `0 4px 20px ${alpha(
                     getAlertColor(threat.alert_level),
-                    0.2
+                    0.15
                   )}`,
+                  backgroundColor: isDark
+                    ? alpha(getAlertColor(threat.alert_level), 0.1)
+                    : alpha(getAlertColor(threat.alert_level), 0.05),
                 },
               }}
             >
-              <CardContent>
-                <Grid container spacing={2} alignItems="center">
+              <CardContent sx={{ "&:last-child": { pb: 2 } }}>
+                <Grid container spacing={2} alignItems="flex-start">
                   <Grid item xs={12} md={8}>
-                    <Typography
-                      variant="h6"
+                    <Box
                       sx={{
-                        color: getAlertColor(threat.alert_level),
-                        mb: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 2,
                       }}
                     >
-                      {threat.description}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: isDark
-                          ? alpha(theme.palette.common.white, 0.7)
-                          : alpha(theme.palette.common.black, 0.7),
-                      }}
-                    >
-                      IP: {threat.ip_address} | País: {threat.country}
-                    </Typography>
-                    <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: getAlertColor(threat.alert_level),
+                          fontWeight: 600,
+                          fontSize: "1.1rem",
+                        }}
+                      >
+                        {threat.description}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 3, mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: isDark
+                            ? alpha(theme.palette.common.white, 0.7)
+                            : alpha(theme.palette.common.black, 0.7),
+                        }}
+                      >
+                        <strong>IP:</strong> {threat.ip_address}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: isDark
+                            ? alpha(theme.palette.common.white, 0.7)
+                            : alpha(theme.palette.common.black, 0.7),
+                        }}
+                      >
+                        <strong>País:</strong> {threat.country}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       <Chip
                         size="small"
-                        label={threat.network_zone.toUpperCase()}
-                        color="primary"
-                        variant="outlined"
+                        label={threat.network_zone}
+                        sx={{
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.1
+                          ),
+                          color: theme.palette.primary.main,
+                          fontWeight: 500,
+                        }}
                       />
                       <Chip
                         size="small"
                         label={threat.asset_name}
-                        color="secondary"
-                        variant="outlined"
+                        sx={{
+                          backgroundColor: alpha(
+                            theme.palette.secondary.main,
+                            0.1
+                          ),
+                          color: theme.palette.secondary.main,
+                          fontWeight: 500,
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`${(threat.threat_score * 100).toFixed(
                           0
                         )}% Risco`}
-                        color="error"
-                        variant="outlined"
+                        sx={{
+                          backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          color: theme.palette.error.main,
+                          fontWeight: 500,
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`${threat.login_attempts} tentativas`}
-                        color="warning"
-                        variant="outlined"
+                        sx={{
+                          backgroundColor: alpha(
+                            theme.palette.warning.main,
+                            0.1
+                          ),
+                          color: theme.palette.warning.main,
+                          fontWeight: 500,
+                        }}
                       />
                     </Box>
                   </Grid>
@@ -217,10 +297,10 @@ export default function Threats() {
                           0.1
                         ),
                         color: getAlertColor(threat.alert_level),
-                        borderColor: getAlertColor(threat.alert_level),
                         fontWeight: "bold",
+                        fontSize: "0.875rem",
+                        height: "28px",
                       }}
-                      variant="outlined"
                     />
                     <Typography
                       variant="caption"
@@ -228,6 +308,7 @@ export default function Threats() {
                         color: isDark
                           ? alpha(theme.palette.common.white, 0.5)
                           : alpha(theme.palette.common.black, 0.5),
+                        fontSize: "0.75rem",
                       }}
                     >
                       Detectado em: {formatDate(threat.timestamp)}
@@ -239,6 +320,6 @@ export default function Threats() {
           </Grid>
         ))}
       </Grid>
-    </>
+    </Box>
   );
 }

@@ -2,14 +2,14 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine, Base
-from schemas import AccessLog, AccessLogCreate
-from crud import create_access_log, get_logs, get_threats
-from model import predict_threat
-from network_analyzer import analyze_ip, calculate_alert_level
+from backend.database import SessionLocal, engine, Base
+from backend.schemas import AccessLog, AccessLogCreate
+from backend.crud import create_access_log, get_logs, get_threats
+from backend.model import predict_threat
+from backend.network_analyzer import analyze_ip, calculate_alert_level
 from datetime import datetime, timedelta
 import random
-from config import COMPANY_NETWORK
+from backend.config import COMPANY_NETWORK
 
 # Sample data for simulation
 SAMPLE_IPS = [
