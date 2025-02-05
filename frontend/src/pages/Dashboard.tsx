@@ -78,7 +78,8 @@ export default function Dashboard() {
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        await logService.simulateMultiple(10);
+        // Carrega 20 eventos iniciais
+        await logService.simulateMultiple(20);
         await loadDashboardData();
       } catch (error) {
         console.error("Erro ao carregar dados iniciais:", error);
@@ -89,10 +90,18 @@ export default function Dashboard() {
 
     loadInitialData();
 
-    const dataInterval = setInterval(loadDashboardData, 5000);
+    // Atualiza dados a cada 2 segundos
+    const dataInterval = setInterval(loadDashboardData, 2000);
+
+    // Simula novos eventos a cada 1 segundo
     const simulationInterval = setInterval(async () => {
       try {
-        await logService.simulateEvent();
+        // 30% de chance de gerar múltiplos eventos
+        if (Math.random() < 0.3) {
+          await logService.simulateMultiple(Math.floor(Math.random() * 3) + 2);
+        } else {
+          await logService.simulateEvent();
+        }
       } catch (error: unknown) {
         if (
           error &&
@@ -103,13 +112,13 @@ export default function Dashboard() {
           console.error("Erro ao simular evento:", error);
         }
       }
-    }, 3000);
+    }, 1000);
 
     return () => {
       clearInterval(dataInterval);
       clearInterval(simulationInterval);
     };
-  }, [filters]); // Removed loadDashboardData from dependencies
+  }, [filters]);
 
   const handleFilterChange = (newFilters: FilterType) => {
     setFilters(newFilters);
@@ -252,6 +261,7 @@ export default function Dashboard() {
                 const timeAgo = Math.floor(
                   (Date.now() - eventTime.getTime()) / 60000
                 );
+                const isHighRisk = event.login_attempts > 3;
 
                 return (
                   <Box
@@ -261,10 +271,9 @@ export default function Dashboard() {
                       justifyContent: "space-between",
                       alignItems: "center",
                       p: 1.5,
-                      backgroundColor:
-                        event.login_attempts > 3
-                          ? alpha(theme.palette.error.main, isDark ? 0.1 : 0.05)
-                          : "transparent",
+                      backgroundColor: isHighRisk
+                        ? alpha(theme.palette.error.main, isDark ? 0.1 : 0.05)
+                        : "transparent",
                       borderRadius: 1,
                       animation: "slideIn 0.3s ease-out",
                       "@keyframes slideIn": {
@@ -283,13 +292,12 @@ export default function Dashboard() {
                       <Typography
                         variant="body2"
                         sx={{
-                          color:
-                            event.login_attempts > 3
-                              ? theme.palette.error.main
-                              : isDark
-                              ? theme.palette.common.white
-                              : theme.palette.common.black,
-                          fontWeight: event.login_attempts > 3 ? 600 : 400,
+                          color: isHighRisk
+                            ? theme.palette.error.main
+                            : isDark
+                            ? theme.palette.common.white
+                            : theme.palette.common.black,
+                          fontWeight: isHighRisk ? 600 : 400,
                         }}
                       >
                         {event.description}
@@ -304,8 +312,23 @@ export default function Dashboard() {
                           mt: 0.5,
                         }}
                       >
-                        IP: {event.ip_address} ({event.country}) -{" "}
-                        {event.login_attempts} tentativas
+                        IP: {event.ip_address} ({event.country})
+                        {event.login_attempts > 0 && (
+                          <span
+                            style={{
+                              color: isHighRisk
+                                ? theme.palette.error.main
+                                : "inherit",
+                              fontWeight: isHighRisk ? 600 : 400,
+                            }}
+                          >
+                            {" "}
+                            • {event.login_attempts}{" "}
+                            {event.login_attempts === 1
+                              ? "tentativa"
+                              : "tentativas"}
+                          </span>
+                        )}
                       </Typography>
                     </Box>
                     <Typography

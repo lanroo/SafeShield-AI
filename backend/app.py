@@ -26,9 +26,11 @@ SAMPLE_IPS = [
     "10.0.0.101",    # Usuário VPN
     
     # IPs externos maliciosos
-    "45.33.132.12", 
-    "185.65.23.145", 
-    "103.235.46.78",
+    "45.33.132.12",  # Rússia
+    "185.65.23.145", # China
+    "103.235.46.78", # Coreia do Norte
+    "91.234.56.17",  # Ucrânia
+    "77.83.12.45",   # Irã
     
     # IPs de parceiros autorizados
     "203.0.113.10",  # API Partner 1
@@ -51,87 +53,90 @@ SAMPLE_COUNTRIES = {
 ATTACK_PATTERNS = [
     {
         "type": "BRUTE_FORCE",
-        "description": "⚠️ Tentativa de força bruta detectada",
-        "details": "Múltiplas tentativas de login com diferentes senhas",
+        "description": "🔨 Ataque de força bruta",
+        "details": "Múltiplas tentativas de login detectadas",
         "severity": "ALTA",
         "cve": "CVE-2023-1234",
         "technique": "T1110 - Brute Force"
     },
     {
         "type": "SQL_INJECTION",
-        "description": "🚨 Possível ataque de injeção SQL",
-        "details": "Payload malicioso detectado nos parâmetros da requisição",
+        "description": "💉 Tentativa de SQL Injection",
+        "details": "Padrões maliciosos em parâmetros SQL",
         "severity": "CRÍTICA",
         "cve": "CVE-2023-5678",
         "technique": "T1190 - Exploit Public-Facing Application"
     },
     {
-        "type": "UNAUTHORIZED",
-        "description": "🔒 Tentativa de acesso não autorizado",
-        "details": "Tentativa de acesso a recursos restritos",
-        "severity": "MÉDIA",
-        "cve": None,
-        "technique": "T1078 - Valid Accounts"
-    },
-    {
-        "type": "AUTH_FAILURE",
-        "description": "⛔ Múltiplas falhas de autenticação",
-        "details": "Sequência suspeita de falhas de login",
-        "severity": "MÉDIA",
-        "cve": None,
-        "technique": "T1110.001 - Password Guessing"
-    },
-    {
-        "type": "SUSPICIOUS_PATTERN",
-        "description": "👀 Padrão suspeito de requisições",
-        "details": "Comportamento anômalo detectado no padrão de acesso",
-        "severity": "BAIXA",
-        "cve": None,
-        "technique": "T1595 - Active Scanning"
-    },
-    {
-        "type": "DDOS_ATTEMPT",
-        "description": "💥 Possível tentativa de DDoS",
-        "details": "Alto volume de requisições em curto período",
+        "type": "RANSOMWARE",
+        "description": "🔒 Atividade de Ransomware",
+        "details": "Padrão de criptografia suspeito detectado",
         "severity": "CRÍTICA",
-        "cve": None,
+        "cve": "CVE-2023-9012",
+        "technique": "T1486 - Data Encrypted for Impact"
+    },
+    {
+        "type": "DDOS",
+        "description": "🌊 Ataque DDoS em andamento",
+        "details": "Volume anormal de requisições detectado",
+        "severity": "ALTA",
         "technique": "T1498 - Network Denial of Service"
     },
     {
-        "type": "MALWARE_DETECTED",
-        "description": "🦠 Malware detectado",
-        "details": "Assinatura de malware conhecida identificada",
+        "type": "BACKDOOR",
+        "description": "🚪 Backdoor detectado",
+        "details": "Conexão suspeita em porta não usual",
         "severity": "CRÍTICA",
-        "cve": "CVE-2023-9012",
-        "technique": "T1587 - Develop Capabilities"
+        "cve": "CVE-2023-7890",
+        "technique": "T1133 - External Remote Services"
     },
     {
-        "type": "DATA_EXFILTRATION",
-        "description": "📤 Possível exfiltração de dados",
-        "details": "Transferência suspeita de grande volume de dados",
+        "type": "DATA_EXFIL",
+        "description": "📤 Exfiltração de dados",
+        "details": "Transferência suspeita de grande volume",
         "severity": "ALTA",
-        "cve": None,
         "technique": "T1048 - Exfiltration Over Alternative Protocol"
+    },
+    {
+        "type": "ZERO_DAY",
+        "description": "🆕 Possível Zero-Day",
+        "details": "Exploit desconhecido detectado",
+        "severity": "CRÍTICA",
+        "technique": "T1190 - Exploit Public-Facing Application"
+    },
+    {
+        "type": "MALWARE",
+        "description": "🦠 Malware detectado",
+        "details": "Assinatura de malware conhecida",
+        "severity": "ALTA",
+        "cve": "CVE-2023-4321",
+        "technique": "T1587 - Develop Capabilities"
     }
 ]
 
 NORMAL_ACTIVITIES = [
     {
-        "type": "NORMAL_ACCESS",
-        "description": "✅ Acesso normal ao sistema",
-        "details": "Login bem-sucedido com credenciais válidas",
-        "severity": "BAIXA"
-    },
-    {
-        "type": "ROUTINE_CHECK",
-        "description": "✅ Verificação de rotina",
-        "details": "Acesso periódico para manutenção",
+        "type": "LOGIN",
+        "description": "✅ Login bem-sucedido",
+        "details": "Autenticação com credenciais válidas",
         "severity": "BAIXA"
     },
     {
         "type": "API_CALL",
-        "description": "✅ Chamada API autorizada",
-        "details": "Requisição API com token válido",
+        "description": "🔄 Chamada API",
+        "details": "Requisição API autorizada",
+        "severity": "BAIXA"
+    },
+    {
+        "type": "BACKUP",
+        "description": "💾 Backup automático",
+        "details": "Rotina de backup executada",
+        "severity": "BAIXA"
+    },
+    {
+        "type": "UPDATE",
+        "description": "🔄 Atualização de sistema",
+        "details": "Pacotes de sistema atualizados",
         "severity": "BAIXA"
     }
 ]
@@ -204,12 +209,37 @@ async def simulate_event(db: Session = Depends(get_db)):
     
     if is_attack:
         event_type = random.choice(ATTACK_PATTERNS)
+        # Ataques têm entre 5 e 20 tentativas
         login_attempts = random.randint(5, 20)
+        transaction_value = random.uniform(5000, 50000)  # Valores suspeitos
     else:
         event_type = random.choice(NORMAL_ACTIVITIES)
-        login_attempts = random.randint(1, 3)
+        # Acessos normais têm entre 1 e 2 tentativas (às vezes erra a senha uma vez)
+        login_attempts = random.randint(1, 2)
+        transaction_value = random.uniform(100, 3000)  # Valores normais
     
-    country_code = random.choice(list(SAMPLE_COUNTRIES.keys()))
+    # Ajusta tentativas baseado no tipo de evento
+    if event_type["type"] == "BRUTE_FORCE":
+        login_attempts = random.randint(15, 50)  # Força bruta tem muitas tentativas
+    elif event_type["type"] == "LOGIN":
+        login_attempts = 1  # Login bem sucedido tem apenas 1 tentativa
+    elif event_type["type"] == "BACKDOOR":
+        login_attempts = random.randint(1, 3)  # Backdoor tenta poucas vezes para não chamar atenção
+    elif event_type["type"] == "ZERO_DAY":
+        login_attempts = 1  # Zero-day geralmente é preciso, uma tentativa
+    
+    # Seleciona país baseado no IP
+    if "192.168" in ip_address:
+        country_code = "BR"
+    elif "45.33" in ip_address:
+        country_code = "RU"
+    elif "185.65" in ip_address:
+        country_code = "CN"
+    elif "103.235" in ip_address:
+        country_code = "KP"
+    else:
+        country_code = random.choice(list(SAMPLE_COUNTRIES.keys()))
+    
     country_name = SAMPLE_COUNTRIES[country_code]
     
     # Monta descrição com informações da rede
@@ -229,7 +259,7 @@ async def simulate_event(db: Session = Depends(get_db)):
         ip_address=ip_address,
         country=f"{country_code} - {country_name}",
         login_attempts=login_attempts,
-        transaction_value=random.uniform(100, 10000),
+        transaction_value=transaction_value,
         description=description,
         timestamp=timestamp,
         is_internal=ip_info["is_internal"],
@@ -247,26 +277,7 @@ async def simulate_multiple_events(count: int = 10, db: Session = Depends(get_db
     """Simula múltiplos eventos de acesso para teste"""
     events = []
     for _ in range(count):
-        ip_address = generate_random_ip()
-        ip_info = analyze_ip(ip_address)
-        
-        asset = generate_random_asset()
-        
-        log = AccessLogCreate(
-            description=f"Acesso ao {asset['name']}",
-            ip_address=ip_address,
-            country=ip_info['country'],
-            threat_score=random.uniform(0, 1),
-            alert_level=ip_info['alert_level'],
-            network_zone=ip_info['network_zone'],
-            asset_name=ip_info['asset_name'] or asset['name'],
-            is_internal=ip_info['is_internal'],
-            is_authorized=ip_info['is_authorized'],
-            timestamp=datetime.now()
-        )
-        
-        threat_score = predict_threat(log)
-        event = create_access_log(db=db, log=log, threat_score=threat_score)
+        event = await simulate_event(db)
         events.append(event)
     return events
 
